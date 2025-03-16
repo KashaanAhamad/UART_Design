@@ -119,13 +119,59 @@ begin
                              end  if;
                           end if;
                           
-                       end case;
-                   end if;
+                    end case;
                end if;
-      end process uart_tx;
-                                    
-                           
+           end if;
+ end process uart_tx;
+
+uart_rx:process(CLK)
+begin
+    if rising_edge(CLK) then
+        if(Rx_I='1') and bit_timer_rx =0 then
+            Rx_STATE <= Rx_IDLE;
+        else 
+            bit_timer_rx <=bit_timer_rx +1;
+            case Rx_STATE is
+                when Rx_IDLE =>
+                    Rx_Done_Tick_O <='0';
+                    
+                    if(Rx_I ='0') then
+                    Rx_STATE <= Rx_START;
+                    end if;
+                    
+                when Rx_START =>
+                    if(bit_timer_rx=halfbit_timer_lim-1) then
+                        bit_timer_rx<=halfbit_timer_lim;
                         
-
-
+                        Rx_STATE<= Rx_Data;
+                     end if;
+                     
+                when  Rx_DATA =>
+                    Data_o(bit_cntr_Rx)<=Rx_I;
+                    
+                    if(bit_timer_rx=bit_timer_lim+halfbit_timer_lim-1) then
+                        bit_timer_rx<=halfbit_timer_lim;
+                        bit_cntr_rx<=bit_cntr_rx +1;
+                        
+                     if(bit_cntr_rx =7) then
+                        Rx_STATE<=Rx_STOP;
+                     end if;
+                        bit_cntr_Rx <=bit_cntr_rx +1;
+                    
+                    end if;
+                
+                 when Rx_STOP =>
+                        if bit_timer_Rx = bit_timer_lim -1 then
+                        
+                            bit_timer_rx <=0;
+                            Rx_Done_Tick_O<='1';
+                            bit_cntr_rx<=0;
+                            Rx_STATE <= Rx_IDLE;
+                        end if;
+                 end case;
+           end if;
+        end if;
+        
+ end process uart_rx;
+          
 end Behavioral;
